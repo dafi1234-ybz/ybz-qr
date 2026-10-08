@@ -6,72 +6,91 @@
   <title>תוכן QR</title>
 
   <style>
-    body{
-      margin:0;
-      font-family:Arial,Helvetica,sans-serif;
-      background:#f4f6f8;
-      color:#222;
-      display:flex;
-      min-height:100vh;
-      align-items:center;
-      justify-content:center;
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f4f6f8;
+      color: #222;
+      display: flex;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
     }
 
-    .card{
-      width:min(92%,700px);
-      background:#fff;
-      padding:28px;
-      border-radius:18px;
-      box-shadow:0 10px 30px rgba(0,0,0,.08);
-      text-align:center;
+    .card {
+      width: min(92%, 700px);
+      background: #fff;
+      padding: 28px;
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.08);
+      text-align: center;
     }
 
-    h1{margin-top:0}
-    .id{font-size:14px;color:#666;margin-bottom:15px}
-
-    .btn{
-      display:block;
-      text-decoration:none;
-      padding:15px 20px;
-      margin:14px 0;
-      border-radius:12px;
-      font-size:20px;
-      font-weight:700;
-      background:#1f5fa8;
-      color:#fff;
+    h1 {
+      margin-top: 0;
     }
 
-    .secondary{background:#444}
-    .hidden{display:none}
-
-    img.media{
-      max-width:100%;
-      height:auto;
-      border-radius:12px;
-      margin-top:15px;
+    .id {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 15px;
     }
 
-    video{
-      width:100%;
-      max-height:500px;
-      border-radius:12px;
-      margin-top:15px;
+    .btn {
+      display: block;
+      text-decoration: none;
+      padding: 15px 20px;
+      margin: 14px 0;
+      border-radius: 12px;
+      font-size: 20px;
+      font-weight: 700;
+      background: #1f5fa8;
+      color: #fff;
     }
 
-    iframe{
-      width:100%;
-      height:500px;
-      border:0;
-      border-radius:12px;
-      margin-top:15px;
+    .secondary {
+      background: #444;
     }
 
-    .text-content{
-      text-align:right;
-      white-space:pre-wrap;
-      font-size:18px;
-      line-height:1.7;
-      margin-top:20px;
+    .hidden {
+      display: none;
+    }
+
+    img.media {
+      max-width: 100%;
+      height: auto;
+      border-radius: 12px;
+      margin-top: 15px;
+    }
+
+    video {
+      width: 100%;
+      max-height: 500px;
+      border-radius: 12px;
+      margin-top: 15px;
+      background: #000;
+    }
+
+    iframe {
+      width: 100%;
+      height: 500px;
+      border: 0;
+      border-radius: 12px;
+      margin-top: 15px;
+    }
+
+    .text-content {
+      text-align: right;
+      white-space: pre-wrap;
+      font-size: 18px;
+      line-height: 1.7;
+      margin-top: 20px;
+    }
+
+    .message {
+      font-size: 18px;
+      line-height: 1.6;
+      margin-top: 20px;
     }
   </style>
 </head>
@@ -79,33 +98,39 @@
 <body>
 
 <main class="card">
+
   <div id="qrId" class="id"></div>
 
   <h1 id="title">טוען תוכן...</h1>
 
   <div id="contentArea"></div>
 
-  <a id="mainBtn"
-     class="btn hidden"
-     href="#"
-     target="_blank"
-     rel="noopener">
-     פתיחת התוכן
+  <a
+    id="mainBtn"
+    class="btn hidden"
+    href="#"
+    target="_blank"
+    rel="noopener">
+    פתיחת התוכן
   </a>
 
-  <a id="marketingBtn"
-     class="btn secondary hidden"
-     href="#"
-     target="_blank"
-     rel="noopener">
-     מידע נוסף
+  <a
+    id="marketingBtn"
+    class="btn secondary hidden"
+    href="#"
+    target="_blank"
+    rel="noopener">
+    מידע נוסף
   </a>
+
 </main>
 
 <script>
+
 async function loadContent() {
 
   const params = new URLSearchParams(window.location.search);
+
   const id = (params.get("id") || "QR01").toUpperCase();
 
   const qrId = document.getElementById("qrId");
@@ -117,9 +142,14 @@ async function loadContent() {
   qrId.textContent = id;
 
   try {
+
     const response = await fetch(
       "qr-data.json?time=" + new Date().getTime()
     );
+
+    if (!response.ok) {
+      throw new Error("Failed to load qr-data.json");
+    }
 
     const items = await response.json();
 
@@ -129,7 +159,10 @@ async function loadContent() {
 
     if (!item) {
       title.textContent = "קוד QR לא נמצא";
-      contentArea.textContent = "לא נמצא תוכן פעיל עבור קוד זה.";
+
+      contentArea.innerHTML =
+        '<div class="message">לא נמצא תוכן פעיל עבור קוד זה.</div>';
+
       return;
     }
 
@@ -137,92 +170,229 @@ async function loadContent() {
 
     const type = (item.type || "").trim();
 
+    /*
+      אתר
+    */
     if (type === "אתר") {
-      mainBtn.href = item.url;
-      mainBtn.classList.remove("hidden");
+
+      if (item.url) {
+        mainBtn.href = item.url;
+        mainBtn.textContent = "פתיחת התוכן";
+        mainBtn.classList.remove("hidden");
+      }
+
     }
 
+    /*
+      תמונה
+    */
     else if (type === "תמונה") {
-      const img = document.createElement("img");
-      img.src = item.url;
-      img.className = "media";
-      img.alt = item.title || "";
-      contentArea.appendChild(img);
+
+      if (item.url) {
+
+        const img = document.createElement("img");
+
+        img.src = item.url;
+        img.className = "media";
+        img.alt = item.title || "";
+
+        contentArea.appendChild(img);
+
+      }
+
     }
 
+    /*
+      PDF
+    */
     else if (type === "PDF") {
-      const iframe = document.createElement("iframe");
-      iframe.src = item.url;
-      contentArea.appendChild(iframe);
 
-      mainBtn.href = item.url;
-      mainBtn.textContent = "פתיחת PDF";
-      mainBtn.classList.remove("hidden");
-    }
-
-    else if (type === "סרטון") {
-
-      if (
-        item.url.includes("youtube.com") ||
-        item.url.includes("youtu.be")
-      ) {
-        let videoId = "";
-
-        if (item.url.includes("youtu.be/")) {
-          videoId = item.url.split("youtu.be/")[1].split("?")[0];
-        }
-        else {
-          const u = new URL(item.url);
-          videoId = u.searchParams.get("v");
-        }
+      if (item.url) {
 
         const iframe = document.createElement("iframe");
-        iframe.src = "https://www.youtube.com/embed/" + videoId;
+
+        iframe.src = item.url;
+
+        contentArea.appendChild(iframe);
+
+        mainBtn.href = item.url;
+        mainBtn.textContent = "פתיחת PDF";
+        mainBtn.classList.remove("hidden");
+
+      }
+
+    }
+
+    /*
+      סרטון
+    */
+    else if (type === "סרטון") {
+
+      if (!item.url) {
+
+        contentArea.innerHTML =
+          '<div class="message">לא הוגדר קישור לסרטון.</div>';
+
+      }
+
+      /*
+        Google Drive
+      */
+      else if (item.url.includes("drive.google.com")) {
+
+        let driveUrl = item.url;
+
+        if (driveUrl.includes("/view")) {
+
+          driveUrl =
+            driveUrl.replace("/view", "/preview");
+
+        }
+
+        const iframe =
+          document.createElement("iframe");
+
+        iframe.src = driveUrl;
+
         iframe.allow =
-          "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+          "autoplay; fullscreen";
+
         iframe.allowFullscreen = true;
 
         contentArea.appendChild(iframe);
+
       }
+
+      /*
+        YouTube
+      */
+      else if (
+        item.url.includes("youtube.com") ||
+        item.url.includes("youtu.be")
+      ) {
+
+        let videoId = "";
+
+        if (item.url.includes("youtu.be/")) {
+
+          videoId =
+            item.url
+              .split("youtu.be/")[1]
+              .split("?")[0];
+
+        }
+        else {
+
+          const u = new URL(item.url);
+
+          videoId =
+            u.searchParams.get("v");
+
+        }
+
+        if (videoId) {
+
+          const iframe =
+            document.createElement("iframe");
+
+          iframe.src =
+            "https://www.youtube.com/embed/" +
+            videoId;
+
+          iframe.allow =
+            "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+
+          iframe.allowFullscreen = true;
+
+          contentArea.appendChild(iframe);
+
+        }
+
+      }
+
+      /*
+        MP4 או וידאו ישיר
+      */
       else {
-        const video = document.createElement("video");
+
+        const video =
+          document.createElement("video");
+
         video.src = item.url;
+
         video.controls = true;
+
+        video.playsInline = true;
+
         contentArea.appendChild(video);
+
       }
+
     }
 
+    /*
+      טקסט
+    */
     else if (type === "טקסט") {
-      const div = document.createElement("div");
-      div.className = "text-content";
-      div.textContent = item.textContent || "";
+
+      const div =
+        document.createElement("div");
+
+      div.className =
+        "text-content";
+
+      div.textContent =
+        item.textContent || "";
+
       contentArea.appendChild(div);
+
     }
 
+    /*
+      סוג לא מזוהה
+    */
     else {
-      contentArea.textContent = "סוג תוכן לא נתמך.";
+
+      contentArea.innerHTML =
+        '<div class="message">סוג תוכן לא נתמך.</div>';
+
     }
 
+    /*
+      כפתור שיווקי
+    */
     if (
       item.showMarketing === true &&
       item.marketingUrl
     ) {
+
       marketingBtn.textContent =
         item.marketingText || "מידע נוסף";
 
-      marketingBtn.href = item.marketingUrl;
+      marketingBtn.href =
+        item.marketingUrl;
 
       marketingBtn.classList.remove("hidden");
+
     }
 
   }
-  catch(error) {
-    title.textContent = "שגיאה בטעינת התוכן";
-    contentArea.textContent = "נסה שוב בעוד מספר שניות.";
+  catch (error) {
+
+    console.error(error);
+
+    title.textContent =
+      "שגיאה בטעינת התוכן";
+
+    contentArea.innerHTML =
+      '<div class="message">נסה שוב בעוד מספר שניות.</div>';
+
   }
+
 }
 
 loadContent();
+
 </script>
 
 </body>
