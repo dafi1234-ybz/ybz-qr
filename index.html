@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <title>תוכן QR</title>
 
   <style>
@@ -11,14 +12,14 @@
       font-family: Arial, Helvetica, sans-serif;
       background: #f4f6f8;
       color: #222;
-      display: flex;
       min-height: 100vh;
+      display: flex;
       align-items: center;
       justify-content: center;
     }
 
     .card {
-      width: min(92%, 700px);
+      width: min(92%, 720px);
       background: #fff;
       padding: 28px;
       border-radius: 18px;
@@ -26,26 +27,27 @@
       text-align: center;
     }
 
-    h1 {
-      margin-top: 0;
-    }
-
     .id {
       font-size: 14px;
       color: #666;
-      margin-bottom: 15px;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0 0 22px;
+      font-size: 30px;
     }
 
     .btn {
       display: block;
-      text-decoration: none;
       padding: 15px 20px;
-      margin: 14px 0;
+      margin-top: 18px;
       border-radius: 12px;
+      text-decoration: none;
       font-size: 20px;
       font-weight: 700;
-      background: #1f5fa8;
-      color: #fff;
+      background: #2868ae;
+      color: white;
     }
 
     .secondary {
@@ -56,41 +58,39 @@
       display: none;
     }
 
-    img.media {
+    .media-image {
+      display: block;
       max-width: 100%;
-      height: auto;
+      max-height: 650px;
+      margin: 0 auto;
       border-radius: 12px;
-      margin-top: 15px;
     }
 
     video {
       width: 100%;
-      max-height: 500px;
-      border-radius: 12px;
-      margin-top: 15px;
+      max-height: 650px;
       background: #000;
+      border-radius: 12px;
     }
 
     iframe {
       width: 100%;
-      height: 500px;
+      height: 520px;
       border: 0;
       border-radius: 12px;
-      margin-top: 15px;
     }
 
     .text-content {
       text-align: right;
       white-space: pre-wrap;
-      font-size: 18px;
-      line-height: 1.7;
-      margin-top: 20px;
+      font-size: 19px;
+      line-height: 1.8;
     }
 
     .message {
       font-size: 18px;
       line-height: 1.6;
-      margin-top: 20px;
+      margin: 20px 0;
     }
   </style>
 </head>
@@ -108,7 +108,6 @@
   <a
     id="mainBtn"
     class="btn hidden"
-    href="#"
     target="_blank"
     rel="noopener">
     פתיחת התוכן
@@ -117,7 +116,6 @@
   <a
     id="marketingBtn"
     class="btn secondary hidden"
-    href="#"
     target="_blank"
     rel="noopener">
     מידע נוסף
@@ -127,74 +125,282 @@
 
 <script>
 
-async function loadContent() {
+function cleanType(value) {
+  return String(value || "")
+    .replace(/[,\u060C]/g, "")
+    .trim();
+}
 
-  const params = new URLSearchParams(window.location.search);
 
-  const id = (params.get("id") || "QR01").toUpperCase();
+function getDriveFileId(url) {
 
-  const qrId = document.getElementById("qrId");
-  const title = document.getElementById("title");
-  const contentArea = document.getElementById("contentArea");
-  const mainBtn = document.getElementById("mainBtn");
-  const marketingBtn = document.getElementById("marketingBtn");
+  if (!url) return null;
 
-  qrId.textContent = id;
+  const text = String(url);
+
+  const match1 = text.match(/\/file\/d\/([^/]+)/);
+
+  if (match1) {
+    return match1[1];
+  }
 
   try {
 
-    const response = await fetch(
-      "qr-data.json?time=" + new Date().getTime()
+    const u = new URL(text);
+
+    const id = u.searchParams.get("id");
+
+    if (id) {
+      return id;
+    }
+
+  }
+  catch (e) {}
+
+  return null;
+}
+
+
+function getYouTubeId(url) {
+
+  if (!url) return null;
+
+  try {
+
+    if (url.includes("youtu.be/")) {
+
+      return url
+        .split("youtu.be/")[1]
+        .split("?")[0];
+
+    }
+
+    const u = new URL(url);
+
+    if (u.hostname.includes("youtube.com")) {
+
+      return u.searchParams.get("v");
+
+    }
+
+  }
+  catch (e) {}
+
+  return null;
+}
+
+
+async function loadContent() {
+
+  const params =
+    new URLSearchParams(window.location.search);
+
+  const id =
+    (params.get("id") || "QR01")
+      .trim()
+      .toUpperCase();
+
+  const qrId =
+    document.getElementById("qrId");
+
+  const title =
+    document.getElementById("title");
+
+  const contentArea =
+    document.getElementById("contentArea");
+
+  const mainBtn =
+    document.getElementById("mainBtn");
+
+  const marketingBtn =
+    document.getElementById("marketingBtn");
+
+
+  qrId.textContent = id;
+
+
+  try {
+
+    const dataUrl =
+      new URL("./qr-data.json", window.location.href);
+
+    dataUrl.searchParams.set(
+      "nocache",
+      Date.now()
     );
+
+
+    const response =
+      await fetch(dataUrl.toString(), {
+        cache: "no-store"
+      });
+
 
     if (!response.ok) {
-      throw new Error("Failed to load qr-data.json");
+
+      throw new Error(
+        "qr-data.json HTTP " +
+        response.status
+      );
+
     }
 
-    const items = await response.json();
 
-    const item = items.find(
-      x => x.id === id && x.active === true
-    );
+    const items =
+      await response.json();
+
+
+    if (!Array.isArray(items)) {
+
+      throw new Error(
+        "qr-data.json is not an array"
+      );
+
+    }
+
+
+    const item =
+      items.find(
+        x =>
+          String(x.id || "")
+            .trim()
+            .toUpperCase() === id
+      );
+
 
     if (!item) {
-      title.textContent = "קוד QR לא נמצא";
+
+      title.textContent =
+        "קוד QR לא נמצא";
 
       contentArea.innerHTML =
-        '<div class="message">לא נמצא תוכן פעיל עבור קוד זה.</div>';
+        '<div class="message">' +
+        'לא נמצא תוכן עבור קוד זה.' +
+        '</div>';
 
       return;
+
     }
 
-    title.textContent = item.title || id;
 
-    const type = (item.type || "").trim();
+    if (item.active === false) {
+
+      title.textContent =
+        "התוכן אינו פעיל";
+
+      contentArea.innerHTML =
+        '<div class="message">' +
+        'תוכן זה אינו זמין כרגע.' +
+        '</div>';
+
+      return;
+
+    }
+
+
+    title.textContent =
+      item.title || id;
+
+
+    const type =
+      cleanType(item.type);
+
+    const url =
+      String(item.url || "").trim();
+
 
     /*
       אתר
     */
     if (type === "אתר") {
 
-      if (item.url) {
-        mainBtn.href = item.url;
-        mainBtn.textContent = "פתיחת התוכן";
-        mainBtn.classList.remove("hidden");
+      if (!url) {
+
+        contentArea.innerHTML =
+          '<div class="message">' +
+          'לא הוגדר קישור.' +
+          '</div>';
+
+      }
+      else {
+
+        mainBtn.href = url;
+
+        mainBtn.textContent =
+          "פתיחת התוכן";
+
+        mainBtn.classList.remove(
+          "hidden"
+        );
+
       }
 
     }
+
 
     /*
       תמונה
     */
     else if (type === "תמונה") {
 
-      if (item.url) {
+      if (!url) {
 
-        const img = document.createElement("img");
+        contentArea.innerHTML =
+          '<div class="message">' +
+          'לא הוגדרה תמונה.' +
+          '</div>';
 
-        img.src = item.url;
-        img.className = "media";
-        img.alt = item.title || "";
+      }
+      else {
+
+        let imageUrl = url;
+
+
+        /*
+          אם התמונה נמצאת ב-Google Drive
+        */
+        if (
+          url.includes("drive.google.com")
+        ) {
+
+          const driveId =
+            getDriveFileId(url);
+
+          if (driveId) {
+
+            imageUrl =
+              "https://drive.google.com/thumbnail?id=" +
+              encodeURIComponent(driveId) +
+              "&sz=w1600";
+
+          }
+
+        }
+
+
+        const img =
+          document.createElement("img");
+
+        img.className =
+          "media-image";
+
+        img.src =
+          imageUrl;
+
+        img.alt =
+          item.title || "תמונה";
+
+
+        img.onerror =
+          function () {
+
+            contentArea.innerHTML =
+              '<div class="message">' +
+              'לא ניתן לטעון את התמונה.' +
+              '</div>';
+
+          };
+
 
         contentArea.appendChild(img);
 
@@ -202,133 +408,193 @@ async function loadContent() {
 
     }
 
+
     /*
       PDF
     */
     else if (type === "PDF") {
 
-      if (item.url) {
+      if (!url) {
 
-        const iframe = document.createElement("iframe");
+        contentArea.innerHTML =
+          '<div class="message">' +
+          'לא הוגדר קובץ PDF.' +
+          '</div>';
 
-        iframe.src = item.url;
+      }
+      else {
 
-        contentArea.appendChild(iframe);
+        const iframe =
+          document.createElement(
+            "iframe"
+          );
 
-        mainBtn.href = item.url;
-        mainBtn.textContent = "פתיחת PDF";
-        mainBtn.classList.remove("hidden");
+        iframe.src = url;
+
+        contentArea.appendChild(
+          iframe
+        );
+
+
+        mainBtn.href = url;
+
+        mainBtn.textContent =
+          "פתיחת PDF";
+
+        mainBtn.classList.remove(
+          "hidden"
+        );
 
       }
 
     }
+
 
     /*
       סרטון
     */
     else if (type === "סרטון") {
 
-      if (!item.url) {
+      if (!url) {
 
         contentArea.innerHTML =
-          '<div class="message">לא הוגדר קישור לסרטון.</div>';
+          '<div class="message">' +
+          'לא הוגדר סרטון.' +
+          '</div>';
 
       }
 
-      /*
-        Google Drive
-      */
-      else if (item.url.includes("drive.google.com")) {
-
-        let driveUrl = item.url;
-
-        if (driveUrl.includes("/view")) {
-
-          driveUrl =
-            driveUrl.replace("/view", "/preview");
-
-        }
-
-        const iframe =
-          document.createElement("iframe");
-
-        iframe.src = driveUrl;
-
-        iframe.allow =
-          "autoplay; fullscreen";
-
-        iframe.allowFullscreen = true;
-
-        contentArea.appendChild(iframe);
-
-      }
 
       /*
         YouTube
       */
       else if (
-        item.url.includes("youtube.com") ||
-        item.url.includes("youtu.be")
+        url.includes("youtube.com") ||
+        url.includes("youtu.be")
       ) {
 
-        let videoId = "";
+        const videoId =
+          getYouTubeId(url);
 
-        if (item.url.includes("youtu.be/")) {
 
-          videoId =
-            item.url
-              .split("youtu.be/")[1]
-              .split("?")[0];
+        if (!videoId) {
+
+          contentArea.innerHTML =
+            '<div class="message">' +
+            'קישור YouTube אינו תקין.' +
+            '</div>';
 
         }
         else {
 
-          const u = new URL(item.url);
-
-          videoId =
-            u.searchParams.get("v");
-
-        }
-
-        if (videoId) {
-
           const iframe =
-            document.createElement("iframe");
+            document.createElement(
+              "iframe"
+            );
 
           iframe.src =
             "https://www.youtube.com/embed/" +
-            videoId;
+            encodeURIComponent(videoId);
 
           iframe.allow =
             "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
 
-          iframe.allowFullscreen = true;
+          iframe.allowFullscreen =
+            true;
 
-          contentArea.appendChild(iframe);
+          contentArea.appendChild(
+            iframe
+          );
 
         }
 
       }
 
+
       /*
-        MP4 או וידאו ישיר
+        Google Drive
+      */
+      else if (
+        url.includes("drive.google.com")
+      ) {
+
+        const driveId =
+          getDriveFileId(url);
+
+
+        if (!driveId) {
+
+          contentArea.innerHTML =
+            '<div class="message">' +
+            'קישור Google Drive אינו תקין.' +
+            '</div>';
+
+        }
+        else {
+
+          const iframe =
+            document.createElement(
+              "iframe"
+            );
+
+          iframe.src =
+            "https://drive.google.com/file/d/" +
+            encodeURIComponent(driveId) +
+            "/preview";
+
+          iframe.allow =
+            "autoplay; fullscreen";
+
+          iframe.allowFullscreen =
+            true;
+
+          contentArea.appendChild(
+            iframe
+          );
+
+        }
+
+      }
+
+
+      /*
+        MP4 / סרטון ישיר
       */
       else {
 
         const video =
-          document.createElement("video");
+          document.createElement(
+            "video"
+          );
 
-        video.src = item.url;
+        video.src = url;
 
         video.controls = true;
 
         video.playsInline = true;
 
-        contentArea.appendChild(video);
+        video.preload = "metadata";
+
+
+        video.onerror =
+          function () {
+
+            contentArea.innerHTML =
+              '<div class="message">' +
+              'לא ניתן לנגן את הסרטון.' +
+              '</div>';
+
+          };
+
+
+        contentArea.appendChild(
+          video
+        );
 
       }
 
     }
+
 
     /*
       טקסט
@@ -348,48 +614,64 @@ async function loadContent() {
 
     }
 
+
     /*
-      סוג לא מזוהה
+      סוג לא מוכר
     */
     else {
 
       contentArea.innerHTML =
-        '<div class="message">סוג תוכן לא נתמך.</div>';
+        '<div class="message">' +
+        'סוג תוכן לא נתמך: ' +
+        type +
+        '</div>';
 
     }
 
+
     /*
-      כפתור שיווקי
+      מידע נוסף
     */
     if (
       item.showMarketing === true &&
       item.marketingUrl
     ) {
 
-      marketingBtn.textContent =
-        item.marketingText || "מידע נוסף";
-
       marketingBtn.href =
         item.marketingUrl;
 
-      marketingBtn.classList.remove("hidden");
+      marketingBtn.textContent =
+        item.marketingText ||
+        "מידע נוסף";
+
+      marketingBtn.classList.remove(
+        "hidden"
+      );
 
     }
 
   }
+
+
   catch (error) {
 
-    console.error(error);
+    console.error(
+      "QR error:",
+      error
+    );
 
     title.textContent =
       "שגיאה בטעינת התוכן";
 
     contentArea.innerHTML =
-      '<div class="message">נסה שוב בעוד מספר שניות.</div>';
+      '<div class="message">' +
+      'נסה שוב בעוד מספר שניות.' +
+      '</div>';
 
   }
 
 }
+
 
 loadContent();
 
